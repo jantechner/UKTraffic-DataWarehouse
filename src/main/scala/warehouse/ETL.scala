@@ -168,7 +168,7 @@ class ETL(val path: String) {
       as[MainData]
 
     //create weather table
-    val weather_data_DS =  spark.read.text("$path/weather.txt").as[String]
+    val weather_data_DS =  spark.read.text(s"$path/weather.txt").as[String]
     val weather_DS = weather_data_DS.
       withColumn("description", trim(split($"value", ":")(2)).as[String]).
       withColumn("timestamp", unix_timestamp(getTimestamp($"value"), "dd/MM/yyyy HH:mm").as[Long]).
