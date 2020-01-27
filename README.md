@@ -14,89 +14,62 @@ i kliknij `Build`.
 1. Jar zostanie umieszczony w folderze `out/artifcats`
 
 ### Odpalanie na klastrze
-1. wgraj pliki wejściowe na swój bucket do folderu `warehouse-input` na google storage:
+1. pobierz pliki wejściowe do pamięci klastra i rozpakuj je używając komend:
 
-        AirQuality.csv
-        CityofLondonPoliceOutcomes.txt
-        CityofLondonPoliceRecords.csv
-        MetropolitanPoliceServiceOutcomes.txt
-        MetropolitanPoliceServiceRecords.csv
-        Norm.csv
-        Source.csv
-        
-Pliki `Norm.csv` oraz `Source.csv` znajduja się w katalogu `src/main/scala/warehouse/data`
+        wget https://www.cs.put.poznan.pl/kjankiewicz/bigdata/projekt2/uk-trafic.zip
+        unzip uk-trafic.zip
     
-1. z shella VMki na klastrze przekopiuj pliki z bucketa na klaster 
+1. pobierz na klaster `etl.jar` oraz `hivetables.scala` 
         
-        gsutil cp -r gs://<bucket-name>/warehouse-input .
+        gsutil cp gs://<bucket-name>/<folder>/etl.jar .
+        gsutil cp gs://<bucket-name>/<folder>/hivetables.scala .
+        
 1. stwórz folder na pliki wejściowe na hdfs 
 
-        hadoop fs -mkdir -p input
+        hadoop fs -mkdir -p input_data
+        
 1. przekopiuj pliki wejściowe z klastra na hdfs 
         
-        hadoop fs -copyFromLocal warehouse-input/* input/
-        
-1. (opcjonalnie) przekopiuj jara na klaster 
-        
-        gsutil cp -r gs://<bucket-name>/etl.jar .
+        hadoop fs -copyFromLocal uk-trafic/* input_data/
  
-1. odpal spark-shella i włącz tryp wklejania
+1. uruchom skrypt tworzący tabele w Hive:
     
-        spark-shell 
-        :paste
-        
-1. wklej zawartość pliku `SparkShellLoad.scala`
-        
-1. klinij enter i `crtl + d`, obiekty powinny się utworzyć
-1. stwórz schemat tabel 
+        spark-shell -i hivetables.scala
 
-        val schema = new SchemaCreator(spark)
-        schema.createAll()
-1. wyjdź ze spark shella `crl + d`
-1. odpal etla wskazując ścieżkę do maina. PRZYKŁAD:
+1. odpal etla wskazując odpowiednią klasę oraz folder na HDFS, gdzie znajdują się piliki wejściowe. PRZYKŁAD:
         
         spark-submit --class warehouse.executables.TimeTableEtl \
         --master yarn --num-executors 5 --driver-memory 512m \
-        --executor-memory 512m --executor-cores 1 etl.jar input true
+        --executor-memory 512m --executor-cores 1 etl.jar input_data
 
 zmieniająć parametr `--class` na jedną z klas w `executables` uruchamiamy wybranego ETLA 
-Ostatnie dwa argumenty oznaczają 
-1) folder z plikami wejściowymi 
-2) czy używać małych wersji plików 
+Ostatni argument oznacza folder z plikami wejściowymi 
 
 ### Odpalanie wszystkiego 
 ```
+spark-submit --class warehouse.executables.RegionAuthorityTableEtl \
+--master yarn --num-executors 5 --driver-memory 512m \
+--executor-memory 512m --executor-cores 1 etl.jar input_data
+
 spark-submit --class warehouse.executables.TimeTableEtl \
 --master yarn --num-executors 5 --driver-memory 512m \
---executor-memory 512m --executor-cores 1 etl.jar input false
+--executor-memory 512m --executor-cores 1 etl.jar input_data
 
-spark-submit --class warehouse.executables.SourceTableEtl \
+spark-submit --class warehouse.executables.RoadTableEtl \
 --master yarn --num-executors 5 --driver-memory 512m \
---executor-memory 512m --executor-cores 1 etl.jar input false
+--executor-memory 512m --executor-cores 1 etl.jar input_data
 
-spark-submit --class warehouse.executables.AirPollutionTypeEtl \
+spark-submit --class warehouse.executables.VehicleTypeTableEtl \
 --master yarn --num-executors 5 --driver-memory 512m \
---executor-memory 512m --executor-cores 1 etl.jar input false
+--executor-memory 512m --executor-cores 1 etl.jar input_data
 
-spark-submit --class warehouse.executables.CrimeTypeEtl \
+spark-submit --class warehouse.executables.WeatherTableEtl \
 --master yarn --num-executors 5 --driver-memory 512m \
---executor-memory 512m --executor-cores 1 etl.jar input false
+--executor-memory 512m --executor-cores 1 etl.jar input_data
 
-spark-submit --class warehouse.executables.LocationEtl \
+spark-submit --class warehouse.executables.RidesFactsTableEtl \
 --master yarn --num-executors 5 --driver-memory 512m \
---executor-memory 512m --executor-cores 1 etl.jar input false
-
-spark-submit --class warehouse.executables.OutcomeTypeEtl \
---master yarn --num-executors 5 --driver-memory 512m \
---executor-memory 512m --executor-cores 1 etl.jar input false
-
-spark-submit --class warehouse.executables.CrimeTableEtl \
---master yarn --num-executors 5 --driver-memory 512m \
---executor-memory 512m --executor-cores 1 etl.jar input false
-
-spark-submit --class warehouse.executables.AirQualityTableEtl \
---master yarn --num-executors 5 --driver-memory 512m \
---executor-memory 512m --executor-cores 1 etl.jar input false
+--executor-memory 512m --executor-cores 1 etl.jar input_data
 ```
 ### Zeppelin
 Zaimportuj plik `Zeppelin_Analysis.json` do Zeppelina i uruchom.
